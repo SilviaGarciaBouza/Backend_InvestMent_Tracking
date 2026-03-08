@@ -4,39 +4,35 @@ import com.silviagarcia.investtracking.Investment_Tracking.dto.UserDTO;
 import com.silviagarcia.investtracking.Investment_Tracking.model.User;
 import com.silviagarcia.investtracking.Investment_Tracking.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.util.Optional;
 
-/// Servicio encargado de la lógica de negocio relacionada con los usuarios.
+/// Servicio que gestiona la persistencia y validacion de usuarios.
 @Service
 public class UserService {
 
     @Autowired
     private UserRepository userRepository;
 
-    /// Busca un usuario por su nombre y lo devuelve como DTO.
-    /// @param username Nombre de usuario a buscar.
-    /// @return Un DTO con la información pública del usuario.
-    public UserDTO getUserByUsername(String username) {
-        Optional<User> user = userRepository.findByUsername(username);
-        if (user.isPresent()) {
-            UserDTO dto = new UserDTO();
-            dto.setId(user.get().getId());
-            dto.setUsername(user.get().getUsername());
-            dto.setEmail(user.get().getEmail());
-            return dto;
-        }
-        return null;
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
+    /// Busca la entidad completa del usuario incluyendo su contraseña.
+    public User findEntityByUsername(String username) {
+        return userRepository.findByUsername(username).orElse(null);
     }
 
-    /// Registra un nuevo usuario en el sistema.
+    /// Busca un usuario y transforma la entidad en un DTO seguro.
+    public UserDTO getUserByUsername(String username) {
+        Optional<User> user = userRepository.findByUsername(username);
+        return user.map(u -> new UserDTO(u.getId(), u.getUsername(), u.getEmail())).orElse(null);
+    }
+
+    /// Registra un usuario nuevo encriptando su contraseña con BCrypt.
     public UserDTO registerUser(User user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         User savedUser = userRepository.save(user);
-        UserDTO dto = new UserDTO();
-        dto.setId(savedUser.getId());
-        dto.setUsername(savedUser.getUsername());
-        dto.setEmail(savedUser.getEmail());
-        return dto;
+        return new UserDTO(savedUser.getId(), savedUser.getUsername(), savedUser.getEmail());
     }
 }
