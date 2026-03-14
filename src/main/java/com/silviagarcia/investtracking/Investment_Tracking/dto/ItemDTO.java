@@ -9,4 +9,5 @@ public class ItemDTO {
     private String name;
     private CategoryDTO category;
     private List<TransactionDTO> transactions;
+    private Double currentPrice;
 }

@@ -29,6 +29,8 @@ public class ItemService {
 
     @Autowired
     private TransactionRepository transactionRepository;
+    @Autowired
+    private PriceService priceService;
 
     /**
      * Crea un nuevo activo y su transacción inicial obligatoria.
@@ -86,7 +88,15 @@ public class ItemService {
         itemDto.setId(item.getId());
         itemDto.setName(item.getName());
 
-        // Mapeo de Categoría
+        Double price = priceService.getRealTimePrice(item.getName());
+
+        if ((price == null || price == 0.0) && item.getTransactions() != null && !item.getTransactions().isEmpty()) {
+            Transaction lastTx = item.getTransactions().get(item.getTransactions().size() - 1);
+            price = lastTx.getPurchasePrice();
+        }
+
+        itemDto.setCurrentPrice(price);
+
         if (item.getCategory() != null) {
             CategoryDTO catDto = new CategoryDTO();
             catDto.setId(item.getCategory().getId());
@@ -94,7 +104,6 @@ public class ItemService {
             itemDto.setCategory(catDto);
         }
 
-        // Mapeo de lista de Transacciones (Crucial para los cálculos en Flutter)
         if (item.getTransactions() != null) {
             List<TransactionDTO> txDtos = item.getTransactions().stream().map(tx -> {
                 TransactionDTO txDto = new TransactionDTO();
