@@ -91,8 +91,9 @@ public class ItemService {
         Double price = priceService.getRealTimePrice(item.getName());
 
         if ((price == null || price == 0.0) && item.getTransactions() != null && !item.getTransactions().isEmpty()) {
-            Transaction lastTx = item.getTransactions().get(item.getTransactions().size() - 1);
-            price = lastTx.getPurchasePrice();
+           // Transaction lastTx = item.getTransactions().get(item.getTransactions().size() - 1);
+          //  price = lastTx.getPurchasePrice();
+            price = item.getTransactions().get(item.getTransactions().size() - 1).getPurchasePrice();
         }
 
         itemDto.setCurrentPrice(price);
