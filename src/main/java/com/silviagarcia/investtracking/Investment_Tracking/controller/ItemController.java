@@ -2,7 +2,9 @@ package com.silviagarcia.investtracking.Investment_Tracking.controller;
 
 import com.silviagarcia.investtracking.Investment_Tracking.dto.ItemDTO;
 import com.silviagarcia.investtracking.Investment_Tracking.service.ItemService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,7 +13,7 @@ import java.util.Map;
 /// Controlador encargado de gestionar los activos de la cartera.
 @RestController
 @RequestMapping("/api/items")
-@CrossOrigin(origins = "*") // Permite la conexion desde Flutter/Web sin errores de seguridad [cite: 2026-03-08]
+@CrossOrigin(origins = "*")
 public class ItemController {
 
     @Autowired
@@ -32,7 +34,6 @@ public class ItemController {
      */
     @PostMapping
     public ItemDTO saveItem(@RequestBody Map<String, Object> data) {
-        // Llama al servicio que crea el Item y la Transaccion inicial [cite: 2026-03-08]
         return itemService.saveItemFromMap(data);
     }
 
@@ -41,7 +42,20 @@ public class ItemController {
      * DELETE: http://localhost:8080/api/items/{id}
      */
     @DeleteMapping("/{id}")
-    public void deleteItem(@PathVariable Long id) {
-        itemService.deleteItem(id);
+    @Transactional
+    public ResponseEntity<?> deleteItem(@PathVariable Long id) {
+        try {
+            boolean deleted = itemService.deleteItemById(id);
+
+            if (deleted) {
+                System.out.println("Ítem " + id + " eliminado correctamente de PostgreSQL");
+                return ResponseEntity.ok().build();
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            System.err.println("Error al borrar ítem: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

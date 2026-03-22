@@ -1,4 +1,4 @@
-package com.silviagarcia.investtracking.Investment_Tracking.service;
+package com.silviagarcia.investtracking.Investment_Tracking.security;
 
 
 import io.jsonwebtoken.Claims;
@@ -12,8 +12,7 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
-    private static final String SECRET_KEY = "clavesupersecreta";
-
+    private static final String SECRET_KEY = "EstaEsUnaClaveSuperSeguraParaElWirtz2026!PortafolioInversiones";
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }

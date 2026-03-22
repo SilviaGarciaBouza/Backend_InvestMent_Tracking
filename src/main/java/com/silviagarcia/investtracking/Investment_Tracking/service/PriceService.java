@@ -20,25 +20,21 @@ public class PriceService {
 
     public Double getRealTimePrice(String symbol) {
         try {
-            // 1. Configuramos la URL y el Header de seguridad
             String url = baseUrl + "?symbol=" + symbol;
 
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "apikey " + apiKey);
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            // 2. Hacemos la llamada
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                // Twelve Data devuelve el precio como un String: {"price": "123.45"}
                 String priceStr = (String) response.getBody().get("price");
                 return priceStr != null ? Double.parseDouble(priceStr) : 0.0;
             }
         } catch (Exception e) {
             System.err.println("Error consultando precio para " + symbol + ": " + e.getMessage());
         }
-        // Fallback si algo falla
         return 0.0;
     }
 }

@@ -1,4 +1,4 @@
-package com.silviagarcia.investtracking.Investment_Tracking.config;
+package com.silviagarcia.investtracking.Investment_Tracking.security.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

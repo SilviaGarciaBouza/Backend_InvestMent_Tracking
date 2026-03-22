@@ -1,7 +1,10 @@
 package com.silviagarcia.investtracking.Investment_Tracking.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
+
 import java.util.List;
 
 @Entity
@@ -24,6 +27,8 @@ public class Item {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @OneToMany(mappedBy = "item", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "item", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JsonManagedReference
+    @ToString.Exclude
     private List<Transaction> transactions;
 }

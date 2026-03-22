@@ -2,6 +2,7 @@ package com.silviagarcia.investtracking.Investment_Tracking.controller;
 
 import com.silviagarcia.investtracking.Investment_Tracking.dto.UserDTO;
 import com.silviagarcia.investtracking.Investment_Tracking.model.User;
+import com.silviagarcia.investtracking.Investment_Tracking.security.JwtService;
 import com.silviagarcia.investtracking.Investment_Tracking.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,8 @@ import java.util.UUID;
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
 public class UserController {
+    @Autowired
+    private JwtService jwtService;
 
     @Autowired
     private UserService userService;
@@ -32,7 +35,7 @@ public class UserController {
         User user = userService.findEntityByUsername(username);
 
         if (user != null && passwordEncoder.matches(password, user.getPassword())) {
-            String token = UUID.randomUUID().toString();
+            String token = jwtService.generateToken(user.getUsername());
             Map<String, Object> response = new HashMap<>();
             response.put("user", new UserDTO(user.getId(), user.getUsername(), user.getEmail()));
             response.put("token", token);

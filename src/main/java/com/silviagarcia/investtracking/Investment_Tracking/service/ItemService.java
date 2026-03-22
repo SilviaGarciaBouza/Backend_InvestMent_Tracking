@@ -69,16 +69,29 @@ public class ItemService {
     }
 
     /// Elimina el activo de MariaDB por su identificador único.
-    public void deleteItem(Long id) {
-        itemRepository.deleteById(id);
+    @Transactional
+    public boolean deleteItemById(Long id) {
+        if (itemRepository.existsById(id)) {
+            itemRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 
     /// Obtiene todos los activos de un usuario específico.
-    public List<ItemDTO> getItemsByUserId(Long userId) {
+   /* public List<ItemDTO> getItemsByUserId(Long userId) {
         List<Item> items = itemRepository.findByUserId(userId);
         return items.stream().map(this::convertToDTO).collect(Collectors.toList());
-    }
+    }*/
 
+
+    @Transactional(readOnly = true)
+    public List<ItemDTO> getItemsByUserId(Long userId) {
+        List<Item> items = itemRepository.findByUserId(userId);
+        return items.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
     /**
      * Transforma una entidad Item en un DTO, incluyendo categorías y transacciones.
      * Esto evita recursividad infinita en el JSON. [cite: 2026-03-08]

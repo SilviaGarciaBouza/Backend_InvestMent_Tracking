@@ -1,7 +1,11 @@
 package com.silviagarcia.investtracking.Investment_Tracking.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,7 +29,9 @@ public class Transaction {
     @Column()
     private LocalDateTime purchaseDate;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id")
+    @JsonBackReference
+    @ToString.Exclude
     private Item item;
 }

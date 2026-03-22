@@ -1,7 +1,6 @@
-package com.silviagarcia.investtracking.Investment_Tracking.config;
+package com.silviagarcia.investtracking.Investment_Tracking.security;
 
 
-import com.silviagarcia.investtracking.Investment_Tracking.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

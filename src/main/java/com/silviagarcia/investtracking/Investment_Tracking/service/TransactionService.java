@@ -27,24 +27,19 @@ public class TransactionService {
     /// @return El DTO de la transacción guardada.
     @Transactional
     public TransactionDTO createTransaction(TransactionDTO dto, Long itemId) {
-        // 1. Buscamos el Item en la base de datos
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item no encontrado con ID: " + itemId));
 
-        // 2. Creamos la entidad Transaction a partir del DTO
         Transaction tx = new Transaction();
         tx.setStocks(dto.getStocks());
         tx.setPurchasePrice(dto.getPurchasePrice());
         tx.setInvEur(dto.getInvEur());
         tx.setPurchaseDate(dto.getPurchaseDate() != null ? dto.getPurchaseDate() : LocalDateTime.now());
 
-        // 3. Establecemos la relación (Foreign Key)
         tx.setItem(item);
 
-        // 4. Guardamos en MariaDB
         Transaction savedTx = transactionRepository.save(tx);
 
-        // 5. Devolvemos el DTO de confirmación
         TransactionDTO resultDto = new TransactionDTO();
         resultDto.setId(savedTx.getId());
         resultDto.setStocks(savedTx.getStocks());
