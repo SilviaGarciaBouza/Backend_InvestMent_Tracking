@@ -6,7 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-/// Controlador para obtener las categorías de inversión disponibles.
+/**
+ * Controlador REST para la gestión de categorías de inversión.
+ * Proporciona los catálogos necesarios para clasificar activos en la App.
+ */
 @RestController
 @RequestMapping("/api/categories")
 @CrossOrigin(origins = "*")
@@ -15,7 +18,10 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
-    /// Devuelve la lista de todas las categorías para los selectores del frontend.
+    /**
+     * Recupera todas las categorías disponibles.
+     * @return Lista de objetos {@link CategoryDTO}.
+     */
     @GetMapping
     public List<CategoryDTO> getAll() {
         return categoryService.getAllCategories();

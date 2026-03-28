@@ -6,30 +6,28 @@ import com.silviagarcia.investtracking.Investment_Tracking.repository.UserReposi
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
 
-/// Servicio que gestiona la persistencia y validacion de usuarios.
+/**
+ * Servicio para la gestión de cuentas de usuario y seguridad.
+ */
 @Service
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private BCryptPasswordEncoder passwordEncoder;
 
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
-    /// Busca la entidad completa del usuario incluyendo su contraseña.
+    @Transactional(readOnly = true)
     public User findEntityByUsername(String username) {
         return userRepository.findByUsername(username).orElse(null);
     }
 
-    /// Busca un usuario y transforma la entidad en un DTO seguro.
-    public UserDTO getUserByUsername(String username) {
-        Optional<User> user = userRepository.findByUsername(username);
-        return user.map(u -> new UserDTO(u.getId(), u.getUsername(), u.getEmail())).orElse(null);
-    }
-
-    /// Registra un usuario nuevo encriptando su contraseña con BCrypt.
+    /**
+     * Registra un nuevo usuario aplicando hashing a la contraseña.
+     * @param user Entidad con datos en bruto.
+     * @return {@link UserDTO} con la información pública del usuario.
+     */
+    @Transactional
     public UserDTO registerUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         User savedUser = userRepository.save(user);

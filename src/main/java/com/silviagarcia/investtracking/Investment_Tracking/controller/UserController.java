@@ -5,18 +5,22 @@ import com.silviagarcia.investtracking.Investment_Tracking.model.User;
 import com.silviagarcia.investtracking.Investment_Tracking.security.JwtService;
 import com.silviagarcia.investtracking.Investment_Tracking.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
-/// Controlador para gestionar la autenticacion mediante Token Bearer simulado.
+/**
+ * Controlador de seguridad y gestión de perfiles de usuario.
+ * Maneja el acceso mediante JWT y el registro inicial.
+ */
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
 public class UserController {
+
     @Autowired
     private JwtService jwtService;
 
@@ -26,7 +30,11 @@ public class UserController {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
-    /// Valida credenciales y retorna el usuario con un token de sesion unico.
+    /**
+     * Autentica a un usuario y genera un token JWT de sesión.
+     * @param credentials Mapa con 'username' y 'password'.
+     * @return Respuesta con el DTO del usuario y su token, o error 401.
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
         String username = credentials.get("username");
@@ -44,9 +52,14 @@ public class UserController {
         return ResponseEntity.status(401).body("Error: Usuario o password incorrectos");
     }
 
-    /// Procesa el registro de nuevos usuarios en el sistema.
+    /**
+     * Registra un nuevo usuario en el sistema.
+     * @param user Entidad usuario con los datos iniciales.
+     * @return {@link UserDTO} del usuario registrado.
+     */
     @PostMapping("/register")
-    public UserDTO register(@RequestBody User user) {
-        return userService.registerUser(user);
+    public ResponseEntity<UserDTO> register(@RequestBody User user) {
+        UserDTO registered = userService.registerUser(user);
+        return new ResponseEntity<>(registered, HttpStatus.CREATED);
     }
 }

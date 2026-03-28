@@ -2,15 +2,17 @@ package com.silviagarcia.investtracking.Investment_Tracking.controller;
 
 import com.silviagarcia.investtracking.Investment_Tracking.dto.ItemDTO;
 import com.silviagarcia.investtracking.Investment_Tracking.service.ItemService;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 
-/// Controlador encargado de gestionar los activos de la cartera.
+/**
+ * Controlador para la gestión de activos financieros (Items).
+ * Coordina la visualización de la cartera y la sincronización con el cliente móvil.
+ */
 @RestController
 @RequestMapping("/api/items")
 @CrossOrigin(origins = "*")
@@ -20,8 +22,9 @@ public class ItemController {
     private ItemService itemService;
 
     /**
-     * Obtiene la cartera completa de un usuario especifico.
-     * GET: http://localhost:8080/api/items/user/{userId}
+     * Obtiene la cartera de activos de un usuario.
+     * @param userId ID del usuario propietario.
+     * @return Lista de activos vinculados.
      */
     @GetMapping("/user/{userId}")
     public List<ItemDTO> getItems(@PathVariable Long userId) {
@@ -29,33 +32,32 @@ public class ItemController {
     }
 
     /**
-     * Guarda una nueva inversion enviada desde la App de Flutter.
-     * POST: http://localhost:8080/api/items
+     * Crea un nuevo activo a partir de un mapa de datos (JSON flexible).
+     * @param data Mapa con la información del activo y sus relaciones.
+     * @return El DTO del activo creado con estado 201.
      */
     @PostMapping
-    public ItemDTO saveItem(@RequestBody Map<String, Object> data) {
-        return itemService.saveItemFromMap(data);
+    public ResponseEntity<ItemDTO> saveItem(@RequestBody Map<String, Object> data) {
+        ItemDTO saved = itemService.saveItemFromMap(data);
+        return new ResponseEntity<>(saved, HttpStatus.CREATED);
     }
 
     /**
-     * Elimina un activo de la base de datos MariaDB por su ID.
-     * DELETE: http://localhost:8080/api/items/{id}
+     * Elimina un activo por su identificador único.
+     * @param id Identificador del activo a borrar.
+     * @return Respuesta HTTP indicando éxito o error.
      */
     @DeleteMapping("/{id}")
-    @Transactional
     public ResponseEntity<?> deleteItem(@PathVariable Long id) {
         try {
             boolean deleted = itemService.deleteItemById(id);
-
             if (deleted) {
-                System.out.println("Ítem " + id + " eliminado correctamente de PostgreSQL");
                 return ResponseEntity.ok().build();
             } else {
                 return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {
-            System.err.println("Error al borrar ítem: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al borrar: " + e.getMessage());
         }
     }
 }

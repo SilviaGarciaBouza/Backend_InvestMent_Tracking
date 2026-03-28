@@ -7,7 +7,9 @@ import lombok.Data;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
-
+/**
+        * Entidad que registra las operaciones financieras (transacciones) de cada ítem.
+ */
 @Entity
 @Table(name = "transactions")
 @Data
@@ -17,21 +19,27 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column()
+    /** Cantidad de acciones o participaciones. Obligatorio. */
+    @Column(nullable = false)
     private Double stocks;
 
-    @Column()
+    /** Precio de compra unitario. Obligatorio. */
+    @Column(name = "purchase_price", nullable = false)
     private Double purchasePrice;
 
-    @Column()
+    /** Inversión total en Euros. Obligatorio. */
+    @Column(name = "inv_eur", nullable = false)
     private Double invEur;
 
-    @Column()
+    /** Fecha y hora de la transacción. Mapeado a 'datetime' en MariaDB. */
+    @Column(name = "purchase_date", nullable = false)
     private LocalDateTime purchaseDate;
 
+    /** Referencia al ítem padre. No se incluye en el JSON principal para evitar bucles. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id")
     @JsonBackReference
     @ToString.Exclude
     private Item item;
+
 }

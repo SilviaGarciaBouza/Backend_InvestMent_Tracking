@@ -1,74 +1,65 @@
 package com.silviagarcia.investtracking.Investment_Tracking.service;
 
-import com.silviagarcia.investtracking.Investment_Tracking.dto.CategoryDTO;
-import com.silviagarcia.investtracking.Investment_Tracking.dto.ItemDTO;
-import com.silviagarcia.investtracking.Investment_Tracking.dto.TransactionDTO;
+import com.silviagarcia.investtracking.Investment_Tracking.dto.*;
 import com.silviagarcia.investtracking.Investment_Tracking.model.*;
 import com.silviagarcia.investtracking.Investment_Tracking.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/// Servicio principal para la gestión de la cartera de inversiones.
+/**
+ * Servicio central para la gestión de activos e inversiones.
+ * Maneja la lógica de persistencia híbrida y la integración de precios externos.
+ */
 @Service
 public class ItemService {
 
-    @Autowired
-    private ItemRepository itemRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private CategoryRepository categoryRepository;
-
-    @Autowired
-    private TransactionRepository transactionRepository;
-    @Autowired
-    private PriceService priceService;
+    @Autowired private ItemRepository itemRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private CategoryRepository categoryRepository;
+    @Autowired private TransactionRepository transactionRepository;
+    @Autowired private PriceService priceService;
 
     /**
-     * Crea un nuevo activo y su transacción inicial obligatoria.
-     * Sin la transacción, el valor en Flutter siempre sería 0.00€. [cite: 2026-03-08]
+     * Crea un activo y registra su primera transacción de compra.
+     * @param data Mapa con datos del activo e inversión inicial.
+     * @return {@link ItemDTO} con los datos persistidos.
      */
     @Transactional
     public ItemDTO saveItemFromMap(Map<String, Object> data) {
-        // 1. Crear y configurar la entidad Item
         Item item = new Item();
         item.setName((String) data.get("name"));
 
-        // Extraer IDs y buscar entidades relacionadas
         Long userId = ((Number) data.get("userId")).longValue();
         Long catId = ((Number) data.get("categoryId")).longValue();
 
-        item.setUser(userRepository.findById(userId).orElse(null));
-        item.setCategory(categoryRepository.findById(catId).orElse(null));
+        item.setUser(userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Usuario no encontrado")));
+        item.setCategory(categoryRepository.findById(catId).orElseThrow(() -> new RuntimeException("Categoría no encontrada")));
 
-        // Guardar el activo en MariaDB
         Item savedItem = itemRepository.save(item);
 
-        // 2. Crear la transacción inicial para que la App tenga datos que sumar [cite: 2026-03-08]
         Transaction tx = new Transaction();
         tx.setItem(savedItem);
         tx.setStocks(((Number) data.get("initialStocks")).doubleValue());
         tx.setPurchasePrice(((Number) data.get("initialPrice")).doubleValue());
-
-        // Cálculo de inversión: $$invEur = stocks \times purchasePrice$$
         tx.setInvEur(tx.getStocks() * tx.getPurchasePrice());
         tx.setPurchaseDate(LocalDateTime.now());
 
         transactionRepository.save(tx);
-
-        // Retornar el activo convertido a DTO para la respuesta de la API
         return convertToDTO(savedItem);
     }
 
-    /// Elimina el activo de MariaDB por su identificador único.
+    @Transactional(readOnly = true)
+    public List<ItemDTO> getItemsByUserId(Long userId) {
+        return itemRepository.findByUserId(userId).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public boolean deleteItemById(Long id) {
         if (itemRepository.existsById(id)) {
@@ -78,23 +69,9 @@ public class ItemService {
         return false;
     }
 
-    /// Obtiene todos los activos de un usuario específico.
-   /* public List<ItemDTO> getItemsByUserId(Long userId) {
-        List<Item> items = itemRepository.findByUserId(userId);
-        return items.stream().map(this::convertToDTO).collect(Collectors.toList());
-    }*/
-
-
-    @Transactional(readOnly = true)
-    public List<ItemDTO> getItemsByUserId(Long userId) {
-        List<Item> items = itemRepository.findByUserId(userId);
-        return items.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
     /**
-     * Transforma una entidad Item en un DTO, incluyendo categorías y transacciones.
-     * Esto evita recursividad infinita en el JSON. [cite: 2026-03-08]
+     * Convierte una entidad Item a su representación DTO.
+     * Calcula el precio actual y mapea las transacciones incluyendo el ID de referencia.
      */
     private ItemDTO convertToDTO(Item item) {
         ItemDTO itemDto = new ItemDTO();
@@ -102,35 +79,27 @@ public class ItemService {
         itemDto.setName(item.getName());
 
         Double price = priceService.getRealTimePrice(item.getName());
-
         if ((price == null || price == 0.0) && item.getTransactions() != null && !item.getTransactions().isEmpty()) {
-           // Transaction lastTx = item.getTransactions().get(item.getTransactions().size() - 1);
-          //  price = lastTx.getPurchasePrice();
             price = item.getTransactions().get(item.getTransactions().size() - 1).getPurchasePrice();
         }
-
         itemDto.setCurrentPrice(price);
 
         if (item.getCategory() != null) {
-            CategoryDTO catDto = new CategoryDTO();
-            catDto.setId(item.getCategory().getId());
-            catDto.setName(item.getCategory().getName());
-            itemDto.setCategory(catDto);
+            itemDto.setCategory(new CategoryDTO(item.getCategory().getId(), item.getCategory().getName()));
         }
 
         if (item.getTransactions() != null) {
-            List<TransactionDTO> txDtos = item.getTransactions().stream().map(tx -> {
+            itemDto.setTransactions(item.getTransactions().stream().map(tx -> {
                 TransactionDTO txDto = new TransactionDTO();
                 txDto.setId(tx.getId());
                 txDto.setStocks(tx.getStocks());
                 txDto.setPurchasePrice(tx.getPurchasePrice());
                 txDto.setInvEur(tx.getInvEur());
                 txDto.setPurchaseDate(tx.getPurchaseDate());
+                txDto.setItemId(item.getId());
                 return txDto;
-            }).collect(Collectors.toList());
-            itemDto.setTransactions(txDtos);
+            }).collect(Collectors.toList()));
         }
-
         return itemDto;
     }
 }

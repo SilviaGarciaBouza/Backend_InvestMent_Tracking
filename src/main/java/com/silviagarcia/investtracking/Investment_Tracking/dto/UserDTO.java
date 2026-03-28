@@ -4,7 +4,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-/// Objeto para enviar datos del usuario al frontend sin incluir la contraseña.
+/**
+ * Datos públicos del usuario autenticado.
+ * No incluye el campo 'password' por seguridad.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

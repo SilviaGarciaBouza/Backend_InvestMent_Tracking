@@ -3,12 +3,13 @@ package com.silviagarcia.investtracking.Investment_Tracking.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import java.util.Map;
+
+/**
+ * Servicio de conexión con la API externa Twelve Data.
+ * Proporciona precios de mercado en tiempo real para los activos financieros.
+ */
 @Service
 public class PriceService {
 
@@ -18,10 +19,14 @@ public class PriceService {
     private final String apiKey = "e0415dc7f13d491e96a110c088158e6e";
     private final String baseUrl = "https://api.twelvedata.com/price";
 
+    /**
+     * Consulta el precio actual de un símbolo financiero.
+     * @param symbol Símbolo del activo .
+     * @return Precio actual o 0.0 en caso de error o símbolo no encontrado.
+     */
     public Double getRealTimePrice(String symbol) {
         try {
             String url = baseUrl + "?symbol=" + symbol;
-
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "apikey " + apiKey);
             HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -33,7 +38,7 @@ public class PriceService {
                 return priceStr != null ? Double.parseDouble(priceStr) : 0.0;
             }
         } catch (Exception e) {
-            System.err.println("Error consultando precio para " + symbol + ": " + e.getMessage());
+            System.err.println("Error en API para " + symbol + ": " + e.getMessage());
         }
         return 0.0;
     }

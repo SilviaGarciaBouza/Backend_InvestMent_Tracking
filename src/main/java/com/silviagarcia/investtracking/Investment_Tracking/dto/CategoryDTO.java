@@ -1,13 +1,19 @@
 package com.silviagarcia.investtracking.Investment_Tracking.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * DTO para gestionar las categorías de inversión.
- * Se utiliza principalmente para llenar los selectores (dropdowns) en la App.
+ * Objeto de transferencia para categorías.
+ * Optimizado para cargar selectores y etiquetas en la interfaz de usuario.
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CategoryDTO {
+    /** Identificador único de la categoría. */
     private Long id;
+    /** Nombre descriptivo */
     private String name;
 }
