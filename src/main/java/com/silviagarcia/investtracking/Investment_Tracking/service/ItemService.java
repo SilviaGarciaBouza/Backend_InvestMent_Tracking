@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 
 /**
  * Servicio central para la gestión de activos e inversiones.
- * Maneja la lógica de persistencia híbrida y la integración de precios externos.
  */
 @Service
 public class ItemService {
@@ -24,11 +23,6 @@ public class ItemService {
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private PriceService priceService;
 
-    /**
-     * Crea un activo y registra su primera transacción de compra.
-     * @param data Mapa con datos del activo e inversión inicial.
-     * @return {@link ItemDTO} con los datos persistidos.
-     */
     @Transactional
     public ItemDTO saveItemFromMap(Map<String, Object> data) {
         Item item = new Item();
@@ -50,13 +44,25 @@ public class ItemService {
         tx.setPurchaseDate(LocalDateTime.now());
 
         transactionRepository.save(tx);
-        return convertToDTO(savedItem);
+
+        return convertToDTO(savedItem, Map.of());
     }
 
     @Transactional(readOnly = true)
     public List<ItemDTO> getItemsByUserId(Long userId) {
-        return itemRepository.findByUserId(userId).stream()
-                .map(this::convertToDTO)
+        List<Item> items = itemRepository.findByUserId(userId);
+
+        if (items.isEmpty()) return List.of();
+
+        String symbols = items.stream()
+                .map(Item::getName)
+                .distinct()
+                .collect(Collectors.joining(","));
+
+        Map<String, Object> priceMap = priceService.getBatchPrices(symbols);
+
+        return items.stream()
+                .map(item -> convertToDTO(item, priceMap))
                 .collect(Collectors.toList());
     }
 
@@ -70,18 +76,27 @@ public class ItemService {
     }
 
     /**
-     * Convierte una entidad Item a su representación DTO.
-     * Calcula el precio actual y mapea las transacciones incluyendo el ID de referencia.
+     * Convierte una entidad Item a su representación DTO usando el mapa de precios pre-cargado.
      */
-    private ItemDTO convertToDTO(Item item) {
+    private ItemDTO convertToDTO(Item item, Map<String, Object> priceMap) {
         ItemDTO itemDto = new ItemDTO();
         itemDto.setId(item.getId());
         itemDto.setName(item.getName());
 
-        Double price = priceService.getRealTimePrice(item.getName());
+        Double price = 0.0;
+
+        if (priceMap != null && priceMap.containsKey(item.getName())) {
+            Object data = priceMap.get(item.getName());
+            if (data instanceof Map) {
+                Object p = ((Map<?, ?>) data).get("price");
+                if (p != null) price = Double.parseDouble(p.toString());
+            }
+        }
+
         if ((price == null || price == 0.0) && item.getTransactions() != null && !item.getTransactions().isEmpty()) {
             price = item.getTransactions().get(item.getTransactions().size() - 1).getPurchasePrice();
         }
+
         itemDto.setCurrentPrice(price);
 
         if (item.getCategory() != null) {
