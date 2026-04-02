@@ -62,4 +62,15 @@ public class UserController {
         UserDTO registered = userService.registerUser(user);
         return new ResponseEntity<>(registered, HttpStatus.CREATED);
     }
+/**
+ * Verificar si hay conexion desde el front*/
+/*
+    @GetMapping("/health")
+    public ResponseEntity<String> checkHealth() {
+        return ResponseEntity.ok("OK");
+    }*/
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, String>> checkHealth() {
+        return ResponseEntity.ok(Map.of("status", "ok"));
+    }
 }
