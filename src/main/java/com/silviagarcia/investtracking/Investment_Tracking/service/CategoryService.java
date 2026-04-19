@@ -1,7 +1,10 @@
 package com.silviagarcia.investtracking.Investment_Tracking.service;
 
 import com.silviagarcia.investtracking.Investment_Tracking.dto.CategoryDTO;
+import com.silviagarcia.investtracking.Investment_Tracking.model.Category;
 import com.silviagarcia.investtracking.Investment_Tracking.repository.CategoryRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +25,8 @@ public class CategoryService {
      * Recupera el catálogo completo de categorías.
      * @return Lista de {@link CategoryDTO}.
      */
+
+
     @Transactional(readOnly = true)
     public List<CategoryDTO> getAllCategories() {
         return categoryRepository.findAll().stream().map(category -> {
@@ -31,4 +36,5 @@ public class CategoryService {
             return dto;
         }).collect(Collectors.toList());
     }
+
 }
