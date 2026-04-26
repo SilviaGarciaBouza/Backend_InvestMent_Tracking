@@ -29,4 +29,18 @@ public class TransactionController {
         TransactionDTO created = transactionService.createTransaction(dto, itemId);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
+    /**
+     * Elimina una transacción específica del sistema.
+     * @param id ID de la transacción a eliminar.
+     * @return Respuesta vacía con estado 204 si tiene éxito, o 404 si no existe.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        boolean deleted = transactionService.deleteTransaction(id);
+        if (deleted) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
 }

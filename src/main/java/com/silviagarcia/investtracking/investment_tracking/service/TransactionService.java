@@ -38,7 +38,6 @@ public class TransactionService {
      */
     @Transactional
     public TransactionDTO createTransaction(TransactionDTO dto, Long itemId) {
-        // Localizo el Item (name es como símbolo para cotizaciones)
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item no encontrado con ID: " + itemId));
 
@@ -46,7 +45,6 @@ public class TransactionService {
         tx.setStocks(dto.getStocks());
         tx.setPurchasePrice(dto.getPurchasePrice());
 
-        // Si el frontend no envía el total, lo calculo automaaticamente
         if (dto.getInvEur() == null || dto.getInvEur() == 0) {
             tx.setInvEur(dto.getStocks() * dto.getPurchasePrice());
         } else {
@@ -56,10 +54,8 @@ public class TransactionService {
         tx.setPurchaseDate(dto.getPurchaseDate() != null ? dto.getPurchaseDate() : LocalDateTime.now());
         tx.setItem(item);
 
-        // Persistencia en MariaDB
         Transaction savedTx = transactionRepository.save(tx);
 
-        // Mapeo manual al DTO de respuesta
         TransactionDTO resultDto = new TransactionDTO();
         resultDto.setId(savedTx.getId());
         resultDto.setStocks(savedTx.getStocks());
@@ -69,5 +65,24 @@ public class TransactionService {
         resultDto.setItemId(item.getId());
 
         return resultDto;
+    }
+
+    /**
+     * Elimina una transacción específica de la base de datos.
+     *
+     * Se verifica la existencia del registro antes de intentar el borrado para
+     * asegurar una respuesta coherente al controlador. La anotación @Transactional
+     * garantiza que la operación se consolide correctamente en MariaDB.
+     *
+     * @param id Identificador único de la transacción a eliminar.
+     * @return true si la transacción existía y fue eliminada; false si no se encontró.
+     */
+    @Transactional
+    public boolean deleteTransaction(Long id) {
+        if (transactionRepository.existsById(id)) {
+            transactionRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 }
