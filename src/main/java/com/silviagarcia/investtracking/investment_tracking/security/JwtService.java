@@ -4,7 +4,9 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import jakarta.annotation.PostConstruct;
 import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
@@ -16,12 +18,23 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    /** Clave secreta para la firma de los tokens. */
-    private static final String SECRET_KEY = "EstaEsUnaClaveSuperSeguraParaElWirtz2026!PortafolioInversiones";
+    /** Clave secreta para la firma de los tokens (inyectada desde properties). */
+    private final String secretKey;
+
+    public JwtService(@Value("${jwt.secret}") String secretKey) {
+        this.secretKey = secretKey;
+    }
+
+    @PostConstruct
+    private void validateSecret() {
+        if (this.secretKey == null || this.secretKey.length() < 32) {
+            throw new IllegalStateException("jwt.secret must be set and at least 32 characters long");
+        }
+    }
 
     /** Genera la clave de firma a partir de la cadena secreta. */
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
     /**
