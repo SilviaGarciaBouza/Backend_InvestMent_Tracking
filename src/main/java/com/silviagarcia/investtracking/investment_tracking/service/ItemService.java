@@ -35,7 +35,7 @@ public class ItemService {
         item.setCategory(categoryRepository.findById(catId).orElseThrow(() -> new RuntimeException("Categoría no encontrada")));
 
         Item savedItem = itemRepository.save(item);
-
+/*
         Transaction tx = new Transaction();
         tx.setItem(savedItem);
         tx.setStocks(((Number) data.get("initialStocks")).doubleValue());
@@ -44,7 +44,7 @@ public class ItemService {
         tx.setPurchaseDate(LocalDateTime.now());
 
         transactionRepository.save(tx);
-
+*/
         return convertToDTO(savedItem, Map.of());
     }
 
