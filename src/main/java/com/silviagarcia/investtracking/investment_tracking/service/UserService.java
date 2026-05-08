@@ -21,6 +21,10 @@ public class UserService {
     public User findEntityByUsername(String username) {
         return userRepository.findByUsername(username).orElse(null);
     }
+    @Transactional(readOnly = true)
+    public User findEntityByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
 
     /**
      * Registra un nuevo usuario aplicando hashing a la contraseña.

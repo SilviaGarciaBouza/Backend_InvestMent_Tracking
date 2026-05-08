@@ -37,13 +37,13 @@ public class UserController {
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        String username = credentials.get("username");
+        String email = credentials.get("email");
         String password = credentials.get("password");
 
-        User user = userService.findEntityByUsername(username);
+        User user = userService.findEntityByUsername(email);
 
         if (user != null && passwordEncoder.matches(password, user.getPassword())) {
-            String token = jwtService.generateToken(user.getUsername());
+            String token = jwtService.generateToken(user.getEmail());
             Map<String, Object> response = new HashMap<>();
             response.put("user", new UserDTO(user.getId(), user.getUsername(), user.getEmail()));
             response.put("token", token);
