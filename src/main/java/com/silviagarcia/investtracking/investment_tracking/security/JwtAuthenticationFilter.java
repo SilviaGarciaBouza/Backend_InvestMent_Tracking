@@ -1,5 +1,6 @@
 package com.silviagarcia.investtracking.investment_tracking.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,21 +13,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 
-/**
- * Filtro interceptor para validar el Token JWT en cada petición entrante.
- * Extrae el encabezado 'Authorization', valida el token y establece
- * la identidad del usuario en el contexto de seguridad de Spring.
- */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtService jwtService;
 
-    /**
-     * Proceso de filtrado interno.
-     * Se ejecuta una vez por cada solicitud HTTP.
-     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -35,24 +27,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String username;
 
-        // Si no hay cabecera Bearer, pasamos al siguiente filtro
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         jwt = authHeader.substring(7);
-        username = jwtService.extractUsername(jwt);
 
-        // Si el usuario es válido y no está ya autenticado en la sesión
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            if (jwtService.isTokenValid(jwt, username)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        username, null, new ArrayList<>()
-                );
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+        try {
+            username = jwtService.extractEmail(jwt);
+
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (jwtService.isTokenValid(jwt, username)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            username, null, new ArrayList<>()
+                    );
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
+            filterChain.doFilter(request, response);
+
+        } catch (ExpiredJwtException e) {
+            // Personalizamos la respuesta cuando el token ha expirado
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write("{\"error\": \"El token ha expirado\", \"message\": \"" + e.getMessage() + "\"}");
+            // No llamamos a filterChain.doFilter para cortar la petición aquí
+        } catch (Exception e) {
+            // Captura otros posibles errores de JWT (mal formado, firma inválida, etc.)
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.getWriter().write("Error en la validación del token.");
         }
-        filterChain.doFilter(request, response);
     }
 }

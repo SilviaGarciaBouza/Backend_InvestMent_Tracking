@@ -39,20 +39,21 @@ public class JwtService {
 
     /**
      * Genera un nuevo token JWT para un usuario con validez de 10 horas.
-     * @param username El nombre de usuario a identificar en el token.
+     * @param email El nombre de usuario a identificar en el token.
      * @return El string del token JWT generado.
      */
-    public String generateToken(String username) {
+    public String generateToken(String email) {
         return Jwts.builder()
-                .setSubject(username)
+                .setSubject(email)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
+
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 *60*10))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
     /** Extrae el nombre de usuario (Subject) del token. */
-    public String extractUsername(String token) {
+    public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -67,9 +68,9 @@ public class JwtService {
     }
 
     /** Verifica si el token pertenece al usuario y no ha expirado. */
-    public boolean isTokenValid(String token, String username) {
-        final String extractedUsername = extractUsername(token);
-        return (extractedUsername.equals(username) && !isTokenExpired(token));
+    public boolean isTokenValid(String token, String email) {
+        final String extractedEmail = extractEmail(token);
+        return (extractedEmail.equals(email) && !isTokenExpired(token));
     }
 
     /** Comprueba si el tiempo de validez del token ha finalizado. */
