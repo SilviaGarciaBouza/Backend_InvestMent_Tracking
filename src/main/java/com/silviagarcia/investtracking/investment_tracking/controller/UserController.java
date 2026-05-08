@@ -40,7 +40,7 @@ public class UserController {
         String email = credentials.get("email");
         String password = credentials.get("password");
 
-        User user = userService.findEntityByUsername(email);
+        User user = userService.findEntityByEmail(email);
 
         if (user != null && passwordEncoder.matches(password, user.getPassword())) {
             String token = jwtService.generateToken(user.getEmail());
@@ -49,7 +49,7 @@ public class UserController {
             response.put("token", token);
             return ResponseEntity.ok(response);
         }
-        return ResponseEntity.status(401).body("Error: Usuario o password incorrectos");
+        return ResponseEntity.status(401).body(Map.of("error", "Usuario o password incorrectos"));
     }
 
     /**
