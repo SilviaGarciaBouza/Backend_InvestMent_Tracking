@@ -48,14 +48,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (ExpiredJwtException e) {
-            // Personalizamos la respuesta cuando el token ha expirado
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
             response.getWriter().write("{\"error\": \"El token ha expirado\", \"message\": \"" + e.getMessage() + "\"}");
-            // No llamamos a filterChain.doFilter para cortar la petición aquí
         } catch (Exception e) {
-            // Captura otros posibles errores de JWT (mal formado, firma inválida, etc.)
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.getWriter().write("Error en la validación del token.");
         }
