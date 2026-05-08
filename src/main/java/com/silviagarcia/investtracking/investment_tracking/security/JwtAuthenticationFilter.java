@@ -54,7 +54,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             response.getWriter().write("{\"error\": \"El token ha expirado\", \"message\": \"" + e.getMessage() + "\"}");
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write("Error en la validación del token.");
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"Error en la validación del token.\"}");
         }
     }
 }
