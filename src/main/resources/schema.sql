@@ -9,13 +9,13 @@ CREATE TABLE IF NOT EXISTS users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    email VARCHAR(100)
+    email VARCHAR(255) UNIQUE
 );
 
 
 CREATE TABLE IF NOT EXISTS items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(20) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     user_id BIGINT,
     category_id BIGINT,
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id),
@@ -26,8 +26,9 @@ CREATE TABLE IF NOT EXISTS items (
 CREATE TABLE IF NOT EXISTS transactions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     item_id BIGINT,
-    amount DOUBLE NOT NULL,
-    price DOUBLE NOT NULL,
+    stocks DOUBLE NOT NULL,
+    purchase_price DOUBLE NOT NULL,
+    inv_eur DOUBLE NOT NULL,
     purchase_date DATETIME NOT NULL,
     CONSTRAINT fk_item FOREIGN KEY (item_id) REFERENCES items(id)
 );
