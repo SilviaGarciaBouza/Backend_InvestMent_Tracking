@@ -15,7 +15,7 @@ public class User {
     private Long id;
 
     /** Nombre de usuario único y obligatorio. */
-    @Column(unique = true, nullable = false, length = 255)
+    @Column( nullable = false, length = 255)
     private String username;
 
     /** Contraseña encriptada. Obligatoria. */
