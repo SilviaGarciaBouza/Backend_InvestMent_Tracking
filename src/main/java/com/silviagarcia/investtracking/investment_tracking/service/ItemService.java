@@ -4,8 +4,12 @@ import com.silviagarcia.investtracking.investment_tracking.dto.*;
 import com.silviagarcia.investtracking.investment_tracking.model.*;
 import com.silviagarcia.investtracking.investment_tracking.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -24,34 +28,41 @@ public class ItemService {
     @Autowired private PriceService priceService;
 
     @Transactional
-    public ItemDTO saveItemFromMap(Map<String, Object> data) {
+    public ItemDTO saveItemFromMap(Map<String, Object> data, String callerEmail) {
+        Object nameObj = data.get("name");
+        Object userIdObj = data.get("userId");
+        Object catIdObj = data.get("categoryId");
+
+        if (nameObj == null || userIdObj == null || catIdObj == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name, userId y categoryId son obligatorios");
+        }
+
+        Long userId = ((Number) userIdObj).longValue();
+        Long catId = ((Number) catIdObj).longValue();
+
+        User caller = getUserByEmail(callerEmail);
+        if (!caller.getId().equals(userId)) {
+            throw new AccessDeniedException("Acceso denegado");
+        }
+
         Item item = new Item();
-        item.setName((String) data.get("name"));
-
-        Long userId = ((Number) data.get("userId")).longValue();
-        Long catId = ((Number) data.get("categoryId")).longValue();
-
-        item.setUser(userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Usuario no encontrado")));
-        item.setCategory(categoryRepository.findById(catId).orElseThrow(() -> new RuntimeException("Categoría no encontrada")));
+        item.setName((String) nameObj);
+        item.setUser(userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado")));
+        item.setCategory(categoryRepository.findById(catId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoría no encontrada")));
 
         Item savedItem = itemRepository.save(item);
-/*
-        Transaction tx = new Transaction();
-        tx.setItem(savedItem);
-        tx.setStocks(((Number) data.get("initialStocks")).doubleValue());
-        tx.setPurchasePrice(((Number) data.get("initialPrice")).doubleValue());
-        tx.setInvEur(tx.getStocks() * tx.getPurchasePrice());
-        tx.setPurchaseDate(LocalDateTime.now());
-
-        transactionRepository.save(tx);
-*/
         return convertToDTO(savedItem, Map.of());
     }
 
-    @Transactional(readOnly = true)
-    public List<ItemDTO> getItemsByUserId(Long userId) {
-        List<Item> items = itemRepository.findByUserId(userId);
+    public List<ItemDTO> getItemsByUserId(Long userId, String callerEmail) {
+        User caller = getUserByEmail(callerEmail);
+        if (!caller.getId().equals(userId)) {
+            throw new AccessDeniedException("Acceso denegado");
+        }
 
+        List<Item> items = itemRepository.findByUserIdWithTransactions(userId);
         if (items.isEmpty()) return List.of();
 
         String symbols = items.stream()
@@ -67,17 +78,24 @@ public class ItemService {
     }
 
     @Transactional
-    public boolean deleteItemById(Long id) {
-        if (itemRepository.existsById(id)) {
-            itemRepository.deleteById(id);
-            return true;
+    public boolean deleteItemById(Long id, String callerEmail) {
+        Item item = itemRepository.findById(id).orElse(null);
+        if (item == null) return false;
+
+        User caller = getUserByEmail(callerEmail);
+        if (item.getUser() == null || !item.getUser().getId().equals(caller.getId())) {
+            throw new AccessDeniedException("Acceso denegado");
         }
-        return false;
+
+        itemRepository.delete(item);
+        return true;
     }
 
-    /**
-     * Convierte una entidad Item a su representación DTO usando el mapa de precios pre-cargado.
-     */
+    private User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario autenticado no encontrado"));
+    }
+
     private ItemDTO convertToDTO(Item item, Map<String, Object> priceMap) {
         ItemDTO itemDto = new ItemDTO();
         itemDto.setId(item.getId());

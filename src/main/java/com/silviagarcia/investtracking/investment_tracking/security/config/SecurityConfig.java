@@ -41,7 +41,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Rutas abiertas
-                        .requestMatchers("/api/users/login", "/api/users/register", "/api/users/health").permitAll()
+                        .requestMatchers("/api/users/login", "/api/users/register", "/api/users/health", "/error").permitAll()
                         .anyRequest().authenticated() // Todo lo demás requiere Token
                 )
                 .sessionManagement(session -> session
