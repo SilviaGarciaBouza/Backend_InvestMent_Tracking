@@ -1,6 +1,5 @@
 package com.silviagarcia.investtracking.investment_tracking.controller;
 
-
 import com.silviagarcia.investtracking.investment_tracking.model.User;
 import com.silviagarcia.investtracking.investment_tracking.security.JwtService;
 import com.silviagarcia.investtracking.investment_tracking.service.UserService;
@@ -28,21 +27,19 @@ class UserControllerTest {
 
     @Test
     void login_ConCredencialesCorrectas_DebeRetornarOkYToken() {
-        // Arrange
         User user = new User();
         user.setUsername("silvia");
         user.setPassword("password_encriptado");
+        user.setEmail("silvia@test.com");
 
-        Map<String, String> credenciales = Map.of("username", "silvia", "password", "123");
+        Map<String, String> credenciales = Map.of("email", "silvia@test.com", "password", "123");
 
-        when(userService.findEntityByUsername("silvia")).thenReturn(user);
+        when(userService.findEntityByEmail("silvia@test.com")).thenReturn(user);
         when(passwordEncoder.matches("123", "password_encriptado")).thenReturn(true);
-        when(jwtService.generateToken("silvia")).thenReturn("token-fake");
+        when(jwtService.generateToken("silvia@test.com")).thenReturn("token-fake");
 
-        // Act
         ResponseEntity<?> response = userController.login(credenciales);
 
-        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<String, Object> body = (Map<String, Object>) response.getBody();
         assertEquals("token-fake", body.get("token"));
@@ -50,18 +47,56 @@ class UserControllerTest {
 
     @Test
     void login_ConPasswordIncorrecto_DebeRetornar401() {
-        // Arrange
         User user = new User();
         user.setUsername("silvia");
         user.setPassword("password_encriptado");
+        user.setEmail("silvia@test.com");
 
-        when(userService.findEntityByUsername("silvia")).thenReturn(user);
+        when(userService.findEntityByEmail("silvia@test.com")).thenReturn(user);
         when(passwordEncoder.matches("wrong", "password_encriptado")).thenReturn(false);
 
-        // Act
-        ResponseEntity<?> response = userController.login(Map.of("username", "silvia", "password", "wrong"));
+        ResponseEntity<?> response = userController.login(Map.of("email", "silvia@test.com", "password", "wrong"));
 
-        // Assert
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    void login_UsuarioNoExiste_DebeRetornar401() {
+        when(userService.findEntityByEmail("noexiste@test.com")).thenReturn(null);
+
+        ResponseEntity<?> response = userController.login(Map.of("email", "noexiste@test.com", "password", "123"));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    void register_ConDatosValidos_DebeRetornar201() {
+        User req = new User();
+        req.setEmail("silvia@test.com");
+        req.setPassword("pass");
+        req.setUsername("silvia");
+
+        User savedUser = new User();
+        savedUser.setId(1L);
+        savedUser.setUsername("silvia");
+        savedUser.setEmail("silvia@test.com");
+
+        com.silviagarcia.investtracking.investment_tracking.dto.UserDTO dto =
+                new com.silviagarcia.investtracking.investment_tracking.dto.UserDTO(1L, "silvia", "silvia@test.com");
+        when(userService.registerUser(any(User.class))).thenReturn(dto);
+
+        ResponseEntity<com.silviagarcia.investtracking.investment_tracking.dto.UserDTO> response = userController.register(req);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("silvia", response.getBody().getUsername());
+    }
+
+    @Test
+    void checkHealth_DebeRetornarOk() {
+        ResponseEntity<Map<String, String>> response = userController.checkHealth();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("ok", response.getBody().get("status"));
     }
 }

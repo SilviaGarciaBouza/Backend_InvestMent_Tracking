@@ -1,5 +1,6 @@
 package com.silviagarcia.investtracking.investment_tracking.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,6 +11,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,16 +44,48 @@ class JwtAuthenticationFilterTest {
     void doFilter_ConTokenValido_DebeAutenticar() throws Exception {
         String token = "Bearer token-valido";
         String jwt = "token-valido";
-        String user = "silvia";
+        String email = "silvia@test.com";
 
         when(request.getHeader("Authorization")).thenReturn(token);
-        when(jwtService.extractUsername(jwt)).thenReturn(user);
-        when(jwtService.isTokenValid(jwt, user)).thenReturn(true);
+        when(jwtService.extractEmail(jwt)).thenReturn(email);
+        when(jwtService.isTokenValid(jwt, email)).thenReturn(true);
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         assertNotNull(SecurityContextHolder.getContext().getAuthentication());
-        assertEquals(user, SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        assertEquals(email, SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    @DisplayName("Si el token ha expirado, debe retornar 401")
+    void doFilter_ConTokenExpirado_DebeRetornar401() throws Exception {
+        when(request.getHeader("Authorization")).thenReturn("Bearer token-expirado");
+        when(jwtService.extractEmail("token-expirado"))
+                .thenThrow(new ExpiredJwtException(null, null, "expired"));
+
+        PrintWriter writer = new PrintWriter(new StringWriter());
+        when(response.getWriter()).thenReturn(writer);
+
+        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+
+        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(filterChain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    @DisplayName("Si el token es invalido, debe retornar 403")
+    void doFilter_ConTokenInvalido_DebeRetornar403() throws Exception {
+        when(request.getHeader("Authorization")).thenReturn("Bearer token-basura");
+        when(jwtService.extractEmail("token-basura"))
+                .thenThrow(new RuntimeException("malformed token"));
+
+        PrintWriter writer = new PrintWriter(new StringWriter());
+        when(response.getWriter()).thenReturn(writer);
+
+        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+
+        verify(response).setStatus(HttpServletResponse.SC_FORBIDDEN);
+        verify(filterChain, never()).doFilter(any(), any());
     }
 }

@@ -56,7 +56,7 @@ class EndToEndFlowTest {
 
         // 2) Login para obtener token
         Map<String, String> credentials = Map.of(
-                "username", "e2e_user",
+                "email", "e2e@example.com",
                 "password", "Password123"
         );
 

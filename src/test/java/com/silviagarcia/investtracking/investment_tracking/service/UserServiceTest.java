@@ -36,4 +36,37 @@ class UserServiceTest {
         assertEquals("encoded_12345", user.getPassword());
         assertNotNull(result);
     }
+
+    @Test
+    void testFindEntityByEmail_ShouldReturnUser_WhenExists() {
+        User user = new User();
+        user.setEmail("silvia@test.com");
+        when(userRepository.findByEmail("silvia@test.com")).thenReturn(java.util.Optional.of(user));
+
+        User result = userService.findEntityByEmail("silvia@test.com");
+
+        assertNotNull(result);
+        assertEquals("silvia@test.com", result.getEmail());
+    }
+
+    @Test
+    void testFindEntityByEmail_ShouldReturnNull_WhenNotFound() {
+        when(userRepository.findByEmail("unknown@test.com")).thenReturn(java.util.Optional.empty());
+
+        User result = userService.findEntityByEmail("unknown@test.com");
+
+        assertNull(result);
+    }
+
+    @Test
+    void testFindEntityByUsername_ShouldReturnUser_WhenExists() {
+        User user = new User();
+        user.setUsername("silvia");
+        when(userRepository.findByUsername("silvia")).thenReturn(java.util.Optional.of(user));
+
+        User result = userService.findEntityByUsername("silvia");
+
+        assertNotNull(result);
+        assertEquals("silvia", result.getUsername());
+    }
 }
