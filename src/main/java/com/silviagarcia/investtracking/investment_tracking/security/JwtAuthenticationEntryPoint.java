@@ -34,11 +34,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setContentType("application/json");
 
         // Construimos el JSON de error manual para evitar dependencias extra aquí
-        String jsonResponse = String.format(
-                "{\"error\": \"No autorizado\", \"message\": \"%s\"}",
-                authException.getMessage()
-        );
+        response.getWriter().write("{\"error\": \"No autorizado\", \"message\": \"Token no válido o ausente\"}");
 
-        response.getWriter().write(jsonResponse);
     }
 }

@@ -2,10 +2,12 @@ package com.silviagarcia.investtracking.investment_tracking.security.config;
 
 import com.silviagarcia.investtracking.investment_tracking.security.JwtAuthenticationEntryPoint;
 import com.silviagarcia.investtracking.investment_tracking.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -35,13 +37,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(unauthorizedHandler)
+                        .accessDeniedHandler((req, res, ex) -> {
+                            res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            res.setContentType("application/json");
+                            res.setCharacterEncoding("UTF-8");
+                            res.getWriter().write("{\"error\": \"Acceso denegado\"}");
+                        })
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Rutas abiertas
-                        .requestMatchers("/api/users/login", "/api/users/register", "/api/users/health", "/error").permitAll()
+                        .requestMatchers("/api/users/login", "/api/users/register", "/api/users/health").permitAll()
                         .anyRequest().authenticated() // Todo lo demás requiere Token
                 )
                 .sessionManagement(session -> session
