@@ -8,22 +8,21 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 /**
- * Punto de entrada para manejar errores de autenticación en el sistema JWT.
- * * Esta clase se activa cuando un usuario no autenticado intenta acceder
- * a un recurso protegido. En lugar de redireccionar, responde con un error 401
- * en formato JSON, ideal para el consumo desde la App móvil.
+ * Punto de entrada para el manejo de fallos de autenticación.
+ * Esta clase intercepta las peticiones de usuarios no autenticados que intentan
+ * acceder a recursos protegidos y devuelve una respuesta 401 en formato JSON.
  */
 @Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     /**
-     * Se ejecuta cuando falla la autenticación.
-     * * Configura la respuesta HTTP con estado 401 (Unauthorized) y un cuerpo
-     * en formato JSON detallando el motivo del rechazo.
-     * * @param request La petición entrante.
-     * @param response La respuesta que se enviará al cliente.
-     * @param authException La excepción de seguridad capturada.
-     * @throws IOException Si ocurre un error al escribir la respuesta.
+     * Se activa cuando se detecta un intento de acceso no autorizado.
+     * Envía una respuesta HTTP 401 (Unauthorized) al cliente móvil con un mensaje
+     * descriptivo del error para que la App pueda redirigir al Login.
+     * * @param request La petición HTTP recibida.
+     * @param response La respuesta HTTP saliente.
+     * @param authException La excepción de seguridad capturada por Spring.
+     * @throws IOException Si ocurre un error al escribir en la respuesta.
      */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,

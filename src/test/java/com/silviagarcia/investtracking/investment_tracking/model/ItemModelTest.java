@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ItemModelTest {
 
     @Test
-    @DisplayName("Debería vincular el activo con su dueño y su tipo")
+    @DisplayName("Debería vincular el activo con su usuario y su categoría")
     void testItemRelationships() {
         User user = new User();
         Category cat = new Category();

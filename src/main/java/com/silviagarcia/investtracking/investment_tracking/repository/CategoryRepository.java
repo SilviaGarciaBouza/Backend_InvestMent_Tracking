@@ -5,8 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * Repositorio para la gestión de categorías .
- * Permite realizar operaciones CRUD sobre la tabla 'categories'.
+ * Repositorio para la gestión de categorías de inversión.
+ * Proporciona el acceso a datos para el catálogo de tipos de activos (Acciones, Criptos, etc.).
  */
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {

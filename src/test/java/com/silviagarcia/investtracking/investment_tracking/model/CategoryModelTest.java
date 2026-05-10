@@ -13,7 +13,6 @@ class CategoryModelTest {
         category.setId(1L);
         category.setName("Acciones");
 
-        // Getter funciona (gracias a Lombok)
         assertEquals(1L, category.getId());
         assertEquals("Acciones", category.getName());
     }

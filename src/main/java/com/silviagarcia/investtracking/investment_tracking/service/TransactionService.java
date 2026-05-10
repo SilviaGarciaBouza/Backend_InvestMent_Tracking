@@ -19,9 +19,6 @@ import java.util.Optional;
 
 /**
  * Servicio encargado de gestionar las operaciones financieras individuales.
- * <p>
- * Permite registrar nuevas compras o movimientos asociados a un activo (Item)
- * específico, garantizando la integridad de los datos en MariaDB.
  */
 @Service
 public class TransactionService {
@@ -31,14 +28,11 @@ public class TransactionService {
     @Autowired private UserRepository userRepository;
 
     /**
-     * Registra una nueva transacción y la vincula a un activo existente.
-     * <p>
-     * Este método es transaccional; si ocurre un error al guardar, se revertirán
-     * todos los cambios para evitar datos huérfanos.
-     * * @param dto    Objeto de transporte con los datos de la transacción (stocks, precio, etc).
-     * @param itemId Identificador único del activo al que se asocia la operación.
-     * @return {@link TransactionDTO} que incluye el ID generado por la base de datos.
-     * @throws RuntimeException si el ítem padre no existe en el sistema.
+     * Registra una nueva transacción para un ítem determinado.
+     * * @param dto Datos de la transacción.
+     * @param itemId ID del activo al que se asocia.
+     * @param callerEmail Email del usuario autenticado.
+     * @return {@link TransactionDTO} de la transacción creada.
      */
     @Transactional
     public TransactionDTO createTransaction(TransactionDTO dto, Long itemId, String callerEmail) {
@@ -80,14 +74,10 @@ public class TransactionService {
         return resultDto;
     }
     /**
-     * Elimina una transacción específica de la base de datos.
-     *
-     * Se verifica la existencia del registro antes de intentar el borrado para
-     * asegurar una respuesta coherente al controlador. La anotación @Transactional
-     * garantiza que la operación se consolide correctamente en MariaDB.
-     *
-     * @param id Identificador único de la transacción a eliminar.
-     * @return true si la transacción existía y fue eliminada; false si no se encontró.
+     * Elimina una transacción verificando la propiedad del activo padre.
+     * * @param id Identificador de la transacción.
+     * @param callerEmail Email para control de acceso.
+     * @return true si el borrado fue exitoso.
      */
     @Transactional
     public boolean deleteTransaction(Long id, String callerEmail) {
@@ -104,7 +94,7 @@ public class TransactionService {
         transactionRepository.delete(tx);
         return true;
     }
-
+    /** Helper para obtener el usuario autenticado. */
     private User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario autenticado no encontrado"));

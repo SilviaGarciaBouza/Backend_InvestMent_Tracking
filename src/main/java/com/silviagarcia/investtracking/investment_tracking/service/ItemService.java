@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 /**
  * Servicio central para la gestión de activos e inversiones.
+ * Coordina la persistencia de ítems y la integración de precios en tiempo real.
  */
 @Service
 public class ItemService {
@@ -26,7 +27,13 @@ public class ItemService {
     @Autowired private CategoryRepository categoryRepository;
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private PriceService priceService;
-
+    /**
+     * Registra un nuevo activo en la base de datos a partir de un mapa de datos.
+     * Valida que el usuario solicitante sea el propietario del ID enviado.
+     * * @param data Mapa con los campos 'name', 'userId' y 'categoryId'.
+     * @param callerEmail Email del usuario autenticado en el sistema.
+     * @return El {@link ItemDTO} del activo guardado.
+     */
     @Transactional
     public ItemDTO saveItemFromMap(Map<String, Object> data, String callerEmail) {
         Object nameObj = data.get("name");
@@ -55,7 +62,12 @@ public class ItemService {
         Item savedItem = itemRepository.save(item);
         return convertToDTO(savedItem, Map.of());
     }
-
+    /**
+     * Recupera todos los activos de un usuario e inyecta sus cotizaciones actuales.
+     * * @param userId Identificador del usuario propietario.
+     * @param callerEmail Email para validación de seguridad.
+     * @return Lista de activos con precios actualizados.
+     */
     public List<ItemDTO> getItemsByUserId(Long userId, String callerEmail) {
         User caller = getUserByEmail(callerEmail);
         if (!caller.getId().equals(userId)) {
@@ -76,7 +88,12 @@ public class ItemService {
                 .map(item -> convertToDTO(item, priceMap))
                 .collect(Collectors.toList());
     }
-
+    /**
+     * Elimina un activo y todas sus dependencias.
+     * * @param id Identificador del activo a borrar.
+     * @param callerEmail Email del usuario para verificar la propiedad del activo.
+     * @return true si se eliminó correctamente.
+     */
     @Transactional
     public boolean deleteItemById(Long id, String callerEmail) {
         Item item = itemRepository.findById(id).orElse(null);
@@ -90,12 +107,15 @@ public class ItemService {
         itemRepository.delete(item);
         return true;
     }
-
+    /** Obtiene la entidad User a partir del email de seguridad. */
     private User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario autenticado no encontrado"));
     }
-
+    /**
+     * Convierte una entidad Item a DTO, calculando el precio actual
+     * y mapeando su historial de transacciones.
+     */
     private ItemDTO convertToDTO(Item item, Map<String, Object> priceMap) {
         ItemDTO itemDto = new ItemDTO();
         itemDto.setId(item.getId());

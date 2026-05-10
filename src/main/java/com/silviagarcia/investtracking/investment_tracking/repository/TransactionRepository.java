@@ -13,9 +13,9 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
     /**
-     * Busca todas las transacciones asociadas a un ítem o activo específico.
-     * @param itemId Identificador del activo padre.
-     * @return Lista de transacciones del activo.
+     * Obtiene el historial completo de movimientos para un activo específico.
+     * * @param itemId Identificador del activo padre.
+     * @return Lista de transacciones ordenadas por pertenencia al activo.
      */
     List<Transaction> findByItemId(Long itemId);
 }

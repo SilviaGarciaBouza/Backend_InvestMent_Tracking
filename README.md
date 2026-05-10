@@ -1,18 +1,17 @@
-# Investment Tracking — Backend (Guía completa)
+# Investment Tracking — Backend
 
 ## Resumen
-Proyecto backend en Java Spring Boot para seguimiento de inversiones. 
-Proporciona una API REST para gestionar usuarios, categorías, ítems y transacciones. 
-Persistencia con JPA y MariaDB (en tests H2). 
-Seguridad con JWT y Spring Security.
+Backend en Java Spring Boot para el seguimiento de carteras de inversión.
+Proporciona una API REST para gestionar usuarios, categorías, ítems y transacciones.
+Persistencia con JPA y MariaDB (en tests se usa H2 en memoria).
+Seguridad basada en JWT con Spring Security.
 
 ---
 
 ## Requisitos
-- JDK 17
+- JDK 17 o superior
 - Maven (se recomienda usar el wrapper `./mvnw` incluido)
-- MariaDB (opcional en desarrollo; los tests usan H2 por defecto)
-- Git (opcional)
+- MariaDB en `localhost:3306` (solo para ejecutar la aplicación; los tests usan H2)
 
 Comprobar Java:
 ```
@@ -21,228 +20,223 @@ java -version
 
 ---
 
-## Estructura del proyecto (resumen)
+## Estructura del proyecto
 
-- `src/main/java/.../model` — entidades JPA (User, Category, Item, Transaction)
+- `src/main/java/.../model` — entidades JPA (`User`, `Category`, `Item`, `Transaction`)
 - `src/main/java/.../repository` — interfaces `JpaRepository`
-- `src/main/java/.../service` — lógica de negocio
-- `src/main/java/.../controller` — controladores REST
+- `src/main/java/.../service` — lógica de negocio (`UserService`, `ItemService`, `TransactionService`, `CategoryService`, `PriceService`)
+- `src/main/java/.../controller` — controladores REST + `GlobalExceptionHandler`
+- `src/main/java/.../dto` — objetos de transferencia (`UserDTO`, `ItemDTO`, `TransactionDTO`, `CategoryDTO`, `RegisterRequest`)
 - `src/main/java/.../security` — JWT, filtros y configuración de seguridad
 - `src/main/resources` — `application.properties`, `schema.sql`
-- `src/test/java` — pruebas unitarias, integración y E2E
+- `src/test/java` — pruebas unitarias, de integración y E2E
 
 ---
 
-## Base de datos — Tablas 
-A continuación se describen las tablas que usa la aplicación (nombres y columnas principales).
+## Base de datos — Tablas
 
 ### users
 | Columna | Tipo | Restricciones |
 |---|---:|---|
 | id | BIGINT | PK, auto-increment |
-| username | VARCHAR | UNIQUE, NOT NULL |
-| password | VARCHAR | NOT NULL (almacenado en hash BCrypt) |
-| email | VARCHAR | NULLABLE |
+| username | VARCHAR(255) | NOT NULL |
+| password | VARCHAR(255) | NOT NULL (hash BCrypt) |
+| email | VARCHAR(255) | NOT NULL, UNIQUE |
 
 ### categories
 | Columna | Tipo | Restricciones |
 |---|---:|---|
 | id | BIGINT | PK, auto-increment |
-| name | VARCHAR | NOT NULL |
+| name | VARCHAR(255) | NOT NULL |
 
 ### items
 | Columna | Tipo | Restricciones |
 |---|---:|---|
 | id | BIGINT | PK, auto-increment |
-| name | VARCHAR | NOT NULL |
-| user_id | BIGINT | FK -> users.id |
-| category_id | BIGINT | FK -> categories.id |
+| name | VARCHAR(255) | NOT NULL |
+| user_id | BIGINT | FK → users.id |
+| category_id | BIGINT | FK → categories.id |
 
 ### transactions
 | Columna | Tipo | Restricciones |
 |---|---:|---|
 | id | BIGINT | PK, auto-increment |
-| item_id | BIGINT | FK -> items.id |
-| amount | DECIMAL/DOUBLE | NOT NULL |
-| type | VARCHAR | Ej: BUY / SELL (según modelo) |
-| timestamp | TIMESTAMP/DATETIME | NOT NULL |
+| item_id | BIGINT | FK → items.id |
+| stocks | DOUBLE | NOT NULL |
+| purchase_price | DOUBLE | NOT NULL |
+| inv_eur | DOUBLE | NOT NULL (se calcula automáticamente si no se envía) |
+| purchase_date | DATETIME | NOT NULL (se asigna automáticamente si no se envía) |
 
-> Nota: el DDL exacto puede verse en `src/main/resources/schema.sql` o deducirse de las clases en `model`.
+> El DDL completo está en `src/main/resources/schema.sql`.
 
 ---
 
-## Entidades Java (modelos) — archivos y campos clave
-Lista de clases principales y su ubicación (ruta relativa a `src/main/java`):
+## Entidades Java (modelos)
 
 - `model/User.java` — `id`, `username`, `password`, `email`
 - `model/Category.java` — `id`, `name`
-- `model/Item.java` — `id`, `name`, `user` (ManyToOne), `category` (ManyToOne), `transactions` (OneToMany)
-- `model/Transaction.java` — `id`, `item` (ManyToOne), `amount`, `type`, `timestamp`
+- `model/Item.java` — `id`, `name`, `user` (ManyToOne), `category` (ManyToOne), `transactions` (OneToMany, cascade delete)
+- `model/Transaction.java` — `id`, `stocks`, `purchasePrice`, `invEur`, `purchaseDate`, `item` (ManyToOne)
 
-Estas clases están anotadas con JPA (`@Entity`, `@Table`, `@Id`, `@ManyToOne`, `@OneToMany`) y usan Lombok (`@Data`) para getters/setters.
-
----
-
-## Paquetes importantes y responsabilidades
-
-- `controller` — Exponen los endpoints REST. Ejemplos:
-  - `UserController` — `/api/users` (registro, login, health)
-  - `CategoryController` — `/api/categories` (listar)
-  - `ItemController`, `TransactionController` — CRUD sobre ítems y transacciones
-
-- `service` — Lógica de negocio, validaciones y mapeo entidad ↔ DTO
-  - `UserService`, `CategoryService`, `ItemService`, `TransactionService`
-
-- `repository` — Acceso a datos con JPA
-  - `UserRepository`, `CategoryRepository`, `ItemRepository`, `TransactionRepository`
-
-- `security` — JWT y filtros
-  - `JwtService`, `JwtAuthenticationFilter`, `SecurityConfig`
-
-- `dto` — Objetos de transferencia (CategoryDTO, UserDTO, ItemDTO, TransactionDTO)
+Todas las entidades usan `@Entity`, `@Table`, Lombok `@Data`. `Item` y `Transaction` tienen `@JsonManagedReference` / `@JsonBackReference` para evitar bucles en la serialización JSON.
 
 ---
 
-## Configuración importante
-Archivo: `src/main/resources/application.properties`
+## Configuración y variables de entorno
 
-Propiedades relevantes (ejemplos):
+Archivo principal: `src/main/resources/application.properties`
+
+| Variable de entorno | Propiedad | Valor por defecto |
+|---|---|---|
+| `DB_USERNAME` | `spring.datasource.username` | `root` |
+| `DB_PASSWORD` | `spring.datasource.password` | `root` |
+| `JWT_SECRET` | `jwt.secret` | clave de desarrollo (≥ 32 caracteres requeridos) |
+| `FINNHUB_API_KEY` | `finnhub.api.key` | vacío |
+| `TWELVE_API_KEY` | `twelve.api.key` | vacío |
+
+Para desarrollo local, crea `src/main/resources/application-local.properties` y arranca con:
 ```
-spring.datasource.url=jdbc:mariadb://localhost:3306/invest_db
-spring.datasource.username=root
-spring.datasource.password=root
-spring.jpa.hibernate.ddl-auto=update
-server.port=8080
+./mvnw spring-boot:run -Dspring.profiles.active=local
 ```
 
-- Guardar secretos (JWT secret, contraseñas) fuera del VCS. Usar variables de entorno en producción.
+La base de datos `invest_db` se crea automáticamente si no existe. Hibernate DDL mode: `update`.
 
 ---
 
-## Compilar y ejecutar (desarrollo)
+## Seguridad
 
-1. Construir (wrapper):
+- Rutas públicas: `POST /api/users/login`, `POST /api/users/register`, `GET /api/users/health`
+- El resto de endpoints requieren `Authorization: Bearer <token>`
+- JWT con algoritmo HS256, expiración de 10 horas
+- Contraseñas almacenadas con BCrypt
+- Sesiones sin estado (`STATELESS`)
+
+---
+
+## Precios en tiempo real (PriceService)
+
+`PriceService` obtiene precios actuales de APIs externas según el símbolo del ítem:
+
+| Tipo de activo | Detección | API |
+|---|---|---|
+| Forex | Símbolo contiene `/` (ej. `USD/EUR`) | ER-API |
+| Cripto | Símbolo termina en `USDT` (ej. `BTCUSDT`) | Binance |
+| Acciones | Cualquier otro (ej. `AAPL`) | Finnhub |
+
+El precio actual se devuelve en `ItemDTO.currentPrice` y no se persiste en base de datos.
+
+---
+
+## Compilar y ejecutar
+
+Construir:
 ```
 ./mvnw -DskipTests clean package
 ```
 
-2. Ejecutar en desarrollo (hot reload con devtools si está activo):
+Ejecutar en desarrollo:
 ```
-./mvnw -DskipTests spring-boot:run
+./mvnw spring-boot:run
 ```
 
-3. Ejecutar JAR:
+Ejecutar el JAR:
 ```
 java -jar target/investment-tracking-0.0.1-SNAPSHOT.jar
 ```
 
-4. Cambiar puerto temporalmente:
+Cambiar puerto:
 ```
-./mvnw -DskipTests spring-boot:run -Dserver.port=8081
+./mvnw spring-boot:run -Dserver.port=8081
 ```
 
 ---
 
-## Testing
+## Tests
 
-- Ejecutar todos los tests:
+Ejecutar todos los tests:
 ```
 ./mvnw test
 ```
 
-Tipos de pruebas incluidas:
-- Unitarios
-- Integración ascendente (bottom‑up) — `@DataJpaTest` + servicios
-- Integración descendente (top‑down) — `@WebMvcTest` + mocks
-- E2E / Flujos — `@SpringBootTest` + `RANDOM_PORT` + `TestRestTemplate`
-
 Ejecutar un test concreto:
 ```
-./mvnw -Dtest=CategoryBottomUpIntegrationTest test
+./mvnw -Dtest=ItemServiceTest test
 ```
+
+Tipos de pruebas incluidas:
+
+| Anotación | Alcance |
+|---|---|
+| `@ExtendWith(MockitoExtension)` | Unitario — lógica de servicio pura |
+| `@DataJpaTest` | Integración — consultas JPA contra H2 |
+| `@WebMvcTest` | Componente — capa de controlador con servicios mockeados |
+| `@SpringBootTest` | E2E — contexto completo, H2, HTTP real |
+
+> `ApplicationIntegrationTest` requiere una conexión activa a MariaDB y fallará sin ella.
 
 ---
 
 ## Endpoints y ejemplos (curl)
 
-1) Registrar usuario
-```
+### Registrar usuario
+```bash
 curl -X POST http://localhost:8080/api/users/register \
   -H 'Content-Type: application/json' \
   -d '{"username":"user1","password":"Password123","email":"user1@example.com"}'
 ```
+Campos obligatorios: `username`, `password`, `email` (formato válido de email).
 
-2) Login (obtener token)
-```
+### Login — obtener token
+```bash
 curl -X POST http://localhost:8080/api/users/login \
   -H 'Content-Type: application/json' \
-  -d '{"username":"user1","password":"Password123"}'
+  -d '{"email":"user1@example.com","password":"Password123"}'
 ```
-Respuesta: JSON con campo `token` y `user`.
+Respuesta: `{"token": "...", "user": {...}}`
 
-3) Llamada a endpoint protegido (ejemplo listar categorías)
-```
+### Listar categorías
+```bash
 curl -X GET http://localhost:8080/api/categories \
   -H 'Authorization: Bearer <TOKEN>'
 ```
 
-> Ajusta las rutas si cambias `server.port` o el contexto.
+### Crear ítem
+```bash
+curl -X POST http://localhost:8080/api/items \
+  -H 'Authorization: Bearer <TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"BTCUSDT","userId":1,"categoryId":1}'
+```
+Campos obligatorios: `name`, `userId`, `categoryId`. Solo el propietario puede crear ítems para su propio `userId`.
 
----
-
-## Despliegue (Docker + docker-compose)
-
-**Dockerfile (sugerencia)**
-```dockerfile
-FROM eclipse-temurin:17-jre-focal
-COPY target/investment-tracking-0.0.1-SNAPSHOT.jar /app/app.jar
-ENTRYPOINT ["java","-jar","/app/app.jar"]
+### Listar ítems de un usuario
+```bash
+curl -X GET http://localhost:8080/api/items/user/1 \
+  -H 'Authorization: Bearer <TOKEN>'
 ```
 
-**docker-compose.yml (sugerencia)**
-```yaml
-version: '3.8'
-services:
-  db:
-    image: mariadb:11
-    environment:
-      MYSQL_DATABASE: invest_db
-      MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "3306:3306"
-    volumes:
-      - db_data:/var/lib/mysql
-  app:
-    build: .
-    depends_on:
-      - db
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/invest_db
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
-    ports:
-      - "8080:8080"
-volumes:
-  db_data:
+### Crear transacción
+```bash
+curl -X POST http://localhost:8080/api/transactions/item/1 \
+  -H 'Authorization: Bearer <TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"stocks":2.5,"purchasePrice":60000.0}'
+```
+`invEur` se calcula automáticamente (`stocks × purchasePrice`) si no se proporciona. `purchaseDate` se asigna automáticamente si no se envía.
+
+### Eliminar transacción
+```bash
+curl -X DELETE http://localhost:8080/api/transactions/1 \
+  -H 'Authorization: Bearer <TOKEN>'
 ```
 
 ---
 
-## Problemas comunes y soluciones rápidas
-- Tomcat no arranca: `Address already in use` → puerto ocupado. Solución: identificar y matar proceso (`sudo lsof -nP -iTCP:8080 -sTCP:LISTEN`) o usar `-Dserver.port=8081`.
-- Error de versión de Java: asegúrate de usar JDK 17 y que `JAVA_HOME` apunte correctamente.
-- Propiedades marcadas como "Unused" en IDE: advertencia estática; Spring las lee en tiempo de ejecución.
-- Tests E2E con JWT fallan: verifica que `register` y `login` funcionan y que `JwtService` usa la misma configuración en tests.
 
----
 
-## Apéndice — archivos clave
-- `src/main/java/com/silviagarcia/investtracking/investment_tracking/model` — entidades JPA
-- `src/main/java/com/silviagarcia/investtracking/investment_tracking/repository` — repositorios JPA
-- `src/main/java/com/silviagarcia/investtracking/investment_tracking/service` — servicios
-- `src/main/java/com/silviagarcia/investtracking/investment_tracking/controller` — controladores REST
-- `src/main/java/com/silviagarcia/investtracking/investment_tracking/security` — seguridad JWT
-- `src/main/resources/application.properties` — configuración
-- `src/main/resources/schema.sql` — DDL inicial (si existe)
+## Problemas comunes
 
----
+- **Puerto ocupado**: `Address already in use` → identificar el proceso con `sudo lsof -nP -iTCP:8080 -sTCP:LISTEN` y terminarlo, o arrancar en otro puerto con `-Dserver.port=8081`.
+- **Error de versión Java**: asegúrate de que `java -version` muestra JDK 17 o superior y que `JAVA_HOME` apunta correctamente.
+- **Tests E2E fallan**: los tests `@SpringBootTest` sin `@AutoConfigureTestDatabase` requieren MariaDB activo; el resto usan H2 y no necesitan base de datos externa.
+- **Endpoints protegidos devuelven 401 sin token**: incluir siempre `Authorization: Bearer <TOKEN>` en la cabecera.

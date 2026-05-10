@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(CategoryService.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class CategoryBottomUpIntegrationTest {
-
     @Autowired
     private TestEntityManager em;
 

@@ -12,8 +12,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Servicio encargado de la lógica de negocio para categorías.
- * Transforma las entidades de la base de datos en objetos de transporte (DTO).
+ * Servicio encargado de la lógica de negocio para la gestión de categorías.
+ * Actúa como capa intermedia entre el repositorio de persistencia y los
+ * controladores REST, realizando la transformación de entidades a DTOs.
  */
 @Service
 public class CategoryService {
@@ -22,11 +23,10 @@ public class CategoryService {
     private CategoryRepository categoryRepository;
 
     /**
-     * Recupera el catálogo completo de categorías.
-     * @return Lista de {@link CategoryDTO}.
+     * Recupera el catálogo completo de categorías disponibles en el sistema.
+     * Realiza un mapeo directo de la entidad Category al objeto de transporte CategoryDTO.
+     * * @return Lista de {@link CategoryDTO} con todas las categorías registradas.
      */
-
-
     @Transactional(readOnly = true)
     public List<CategoryDTO> getAllCategories() {
         return categoryRepository.findAll().stream().map(category -> {

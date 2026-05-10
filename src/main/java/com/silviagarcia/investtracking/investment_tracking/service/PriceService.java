@@ -7,7 +7,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-
+/**
+ * Servicio encargado de la comunicación con APIs externas de cotización.
+ * Soporta activos de tipo Forex, Criptomonedas y Acciones.
+ */
 @Service
 public class PriceService {
 
@@ -16,7 +19,11 @@ public class PriceService {
 
     @Value("${finnhub.api.key}")
     private String finnhubKey;
-
+    /**
+     * Obtiene los precios de mercado para una lista de símbolos en paralelo.
+     * * @param symbols Cadena con símbolos separados por comas.
+     * @return Mapa con la cotización de cada símbolo.
+     */
     public Map<String, Object> getBatchPrices(String symbols) {
         if (symbols == null || symbols.isEmpty()) return Map.of();
 
@@ -42,7 +49,7 @@ public class PriceService {
 
         return resultMap;
     }
-
+    /** Consulta el precio de divisas mediante Exchange Rate API. */
     private Double getForexPrice(String symbol) {
         try {
             String base = symbol.split("/")[0];
@@ -53,7 +60,7 @@ public class PriceService {
             return Double.parseDouble(rates.get(target).toString());
         } catch (Exception e) { return 0.0; }
     }
-
+    /** Consulta el precio de criptomonedas mediante Binance API. */
     private Double getCryptoPrice(String symbol) {
         try {
             String url = "https://api.binance.com/api/v3/ticker/price?symbol=" + symbol;
@@ -61,7 +68,7 @@ public class PriceService {
             return Double.parseDouble(res.get("price").toString());
         } catch (Exception e) { return 0.0; }
     }
-
+    /** Consulta el precio de acciones mediante Finnhub API. */
     private Double getStockPrice(String symbol) {
         try {
             String url = "https://finnhub.io/api/v1/quote?symbol=" + symbol + "&token=" + finnhubKey;
@@ -69,7 +76,7 @@ public class PriceService {
             return Double.parseDouble(res.get("c").toString());
         } catch (Exception e) { return 0.0; }
     }
-
+    /** Obtiene el precio en tiempo real para un único símbolo. */
     public Double getRealTimePrice(String symbol) {
         Map<String, Object> res = getBatchPrices(symbol);
         if (res.containsKey(symbol)) {
